@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hungry Osama kitten</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        #instructions {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border: 2px solid black;
+            font-size: 20px;
+            z-index: 10;
+        }
+        #instructions.hidden {
+            display: none;
+        }
+        #message {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border: 2px solid black;
+            font-size: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="instructions">
+        <h1>Game rules:</h1>
+        <p> Help mini Osama eat 11 hearts!</p>
+        <p> Press space so you can jump higher, press it FAST two times to jump two times higher</p>
+        <p>Press backspace to start the game.</p>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="message">I love you so much ❤️ our love can overcome everything!</div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const catImage = new Image();
+        const heartImage = new Image();
+        catImage.src = 'https://img.redro.pl/obrazy/kot-brytyjski-krotkowlosy-brazowy-kolor-z-cukierkow-czekoladowych-na-bialym-tle-700-139838751.jpg'; // URL obrazka kota
+        heartImage.src = 'https://cdn.pixabay.com/photo/2014/04/02/10/47/red-304570_1280.png'; // URL obrazka serca
+
+        const cat = {
+            x: 50,
+            y: canvas.height - 150,
+            width: 150,
+            height: 150,
+            dy: 0,
+            isJumping: false,
+        };
+
+        const gravity = 1;
+        const hearts = [];
+        let score = 0;
+        let gameOver = false;
+        let gameStarted = false;
+        let lastSpacePressTime = 0;
+
+        function drawCat() {
+            ctx.drawImage(catImage, cat.x, cat.y, cat.width, cat.height);
+        }
+
+        function drawHeart(heart) {
+            ctx.drawImage(heartImage, heart.x, heart.y, heart.size, heart.size);
+        }
+
+        function drawScore() {
+            ctx.font = '24px Arial';
+            ctx.fillStyle = 'black';
+            ctx.fillText(`Hearts Eaten: ${score}`, 20, 40);
+        }
+
+        function updateCat() {
+            if (cat.isJumping) {
+                cat.dy += gravity;
+                cat.y += cat.dy;
+                if (cat.y > canvas.height - 150) {
+                    cat.y = canvas.height - 150;
+                    cat.isJumping = false;
+                }
+            }
+        }
+
+        function spawnHeart() {
+            hearts.push({
+                x: canvas.width,
+                y: Math.random() * (canvas.height - 400) + 200,
+                size: 30,
+                speed: 4,
+            });
+        }
+
+        function checkCollision() {
+            for (let i = hearts.length - 1; i >= 0; i--) {
+                const heart = hearts[i];
+                if (
+                    cat.x < heart.x + heart.size &&
+                    cat.x + cat.width > heart.x &&
+                    cat.y < heart.y + heart.size &&
+                    cat.y + cat.height > heart.y
+                ) {
+                    score++;
+                    hearts.splice(i, 1);
+                    if (score >= 11) {
+                        document.getElementById('message').style.display = 'block';
+                        gameOver = true;
+                    }
+                }
+            }
+        }
+
+        function updateGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawScore();
+            drawCat();
+            updateCat();
+
+            hearts.forEach((heart, index) => {
+                heart.x -= heart.speed;
+                drawHeart(heart);
+                if (heart.x + heart.size < 0) {
+                    hearts.splice(index, 1);
+                }
+            });
+
+            checkCollision();
+
+            if (!gameOver) {
+                requestAnimationFrame(updateGame);
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            gameOver = false;
+            cat.y = canvas.height - 150;
+            hearts.length = 0;
+            document.getElementById('message').style.display = 'none';
+            updateGame();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (!gameStarted) {
+                    gameStarted = true;
+                    document.getElementById('instructions').classList.add('hidden');
+                    updateGame();
+                } else if (gameOver) {
+                    resetGame();
+                } else {
+                    const currentTime = Date.now();
+                    if (currentTime - lastSpacePressTime < 450) {
+                        if (!cat.isJumping) {
+                            cat.isJumping = true;
+                            cat.dy = -35;
+                        }
+                    } else {
+                        if (!cat.isJumping) {
+                            cat.isJumping = true;
+                            cat.dy = -20;
+                        }
+                    }
+                    lastSpacePressTime = currentTime;
+                }
+            }
+        });
+
+        setInterval(spawnHeart, 2000);
+    </script>
+</body>
+</html>
